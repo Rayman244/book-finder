@@ -8,8 +8,11 @@ const resolvers = {
     user: async (parent, {id}) => {
       return await User.findById(id).populate("books");
     },
-    books: async () => {
-      return Book.find();
+    me: async (parent, context) => {
+      if (context.user) {
+        return User.findOne({ _id: context.user._id }).populate('thoughts');
+      }
+      throw new AuthenticationError('You need to be logged in!');
     },
   },
   Mutation: {
@@ -28,16 +31,16 @@ const resolvers = {
 
       // const token = signToken(profile);
       // return { token, profile };
-      return {profile}
+      return profile
 
     },
     addUser: async (parent, { username, email, password }) => {
       return await User.create({ username, email, password });
     },
-    saveBook: async (parent,{authors,description, title,bookId,link})=>{
+    saveBook: async (parent,{authors,description, title,bookId,link},context)=>{
       try {
         const updatedUser = await User.findOneAndUpdate(
-          { _id: parent._id },
+          { _id: context.User._id },
           { $addToSet: { savedBooks: authors,description, title,bookId,link } },
           { new: true, runValidators: true }
         );
@@ -47,17 +50,21 @@ const resolvers = {
         return err
       }
     },
-    removeBook: async (parent,{id, bookId})=>{
-      const updatedUser = await User.findOneAndUpdate(
-        { _id: userId },
-        { $pull: { savedBooks: { id: bookId } } },
-        { new: true }
-      );
-      if (!updatedUser) {
-        return  alert("Couldn't find user with this id!") ;
-      }
-      return {updatedUser};
+    removeBook: async (parent,{bookId},context)=>{
+      if (context.user) {
+        const book = await Book.findOneAndDelete({
+          bookId: bookId,
+          user: context.User.username,
+        });
+
+        await User.findOneAndUpdate(
+          { _id: context.User._id },
+          { $pull: { savedBooks: book.bookId } }
+        );
+
+        return book;
     }
   },
-};
+}
+}
 module.exports = resolvers;
