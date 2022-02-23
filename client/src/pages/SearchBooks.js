@@ -12,6 +12,7 @@ import { SAVE_BOOK } from '../utils/mutations';
 
 const SearchBooks = () => {
   const [addSavedBook] = useMutation(SAVE_BOOK)
+  // create state for holding returned google api data
   const [searchedBooks, setSearchedBooks] = useState([]);
   // create state for holding our search field data
   const [searchInput, setSearchInput] = useState('');
@@ -59,7 +60,7 @@ const SearchBooks = () => {
   };
   const handleSaveBook = async (bookId) => {
     const bookToSave = searchedBooks.find((book) => book.bookId === bookId);
-    console.log(bookToSave)
+    
     const token = Auth.loggedIn() ? Auth.getToken() : null;
 
     if (!token) {
@@ -73,7 +74,7 @@ const SearchBooks = () => {
       });
 
 
-      if (!response.ok) {
+      if (!response) {
         throw new Error('something went wrong!');
       }
       setSavedBookIds([...savedBookIds, bookToSave.bookId]);
